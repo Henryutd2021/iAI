@@ -120,15 +120,11 @@ def prepare_namespace_plugin_map():
     # The "clipMin" and "clipMax" fields of this TensorFlow node will be parsed by createPlugin,
     # and used to create a CustomClipPlugin with the appropriate parameters.
     trt_relu6 = gs.create_plugin_node(name="trt_relu6", op="CustomClipPlugin", clipMin=0.0, clipMax=6.0)
-    namespace_plugin_map = {
-        ModelData.RELU6_NAME: trt_relu6
-    }
-    return namespace_plugin_map
+    return {ModelData.RELU6_NAME: trt_relu6}
 
 # Transforms model path to uff path (e.g. /a/b/c/d.pb -> /a/b/c/d.uff)
 def model_path_to_uff_path(model_path):
-    uff_path = os.path.splitext(model_path)[0] + ".uff"
-    return uff_path
+    return f"{os.path.splitext(model_path)[0]}.uff"
 
 # Converts the TensorFlow frozen graphdef to UFF format using the UFF converter
 def model_to_uff(model_path):
@@ -173,20 +169,16 @@ def main():
     # PluginRegistry through use of the macro REGISTER_TENSORRT_PLUGIN present
     # in the plugin implementation. Refer to plugin/clipPlugin.cpp for more details.
     if not os.path.isfile(CLIP_PLUGIN_LIBRARY):
-        raise IOError("\n{}\n{}\n{}\n".format(
-            "Failed to load library ({}).".format(CLIP_PLUGIN_LIBRARY),
-            "Please build the Clip sample plugin.",
-            "For more information, see the included README.md"
-        ))
+        raise IOError(
+            f"\nFailed to load library ({CLIP_PLUGIN_LIBRARY}).\nPlease build the Clip sample plugin.\nFor more information, see the included README.md\n"
+        )
     ctypes.CDLL(CLIP_PLUGIN_LIBRARY)
 
     # Load pretrained model
     if not os.path.isfile(MODEL_PATH):
-        raise IOError("\n{}\n{}\n{}\n".format(
-            "Failed to load model file ({}).".format(MODEL_PATH),
-            "Please use 'python lenet5.py' to train and save the model.",
-            "For more information, see the included README.md"
-        ))
+        raise IOError(
+            f"\nFailed to load model file ({MODEL_PATH}).\nPlease use 'python lenet5.py' to train and save the model.\nFor more information, see the included README.md\n"
+        )
 
     # Build an engine and retrieve the image mean from the model.
     with build_engine(MODEL_PATH) as engine:
@@ -194,10 +186,10 @@ def main():
         with engine.create_execution_context() as context:
             print("\n=== Testing ===")
             test_case = load_normalized_test_case(inputs[0].host)
-            print("Loading Test Case: " + str(test_case))
+            print(f"Loading Test Case: {str(test_case)}")
             # The common do_inference function will return a list of outputs - we only have one in this case.
             [pred] = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
-            print("Prediction: " + str(np.argmax(pred)))
+            print(f"Prediction: {str(np.argmax(pred))}")
 
 
 if __name__ == "__main__":

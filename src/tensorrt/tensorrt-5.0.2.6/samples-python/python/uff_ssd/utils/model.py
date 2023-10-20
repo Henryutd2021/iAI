@@ -180,7 +180,7 @@ def download_file(file_url, file_dest_path, silent=False):
         silent (bool): if True, writes progress messages to stdout
     """
     with open(file_dest_path, "wb") as f:
-        maybe_print(not silent, "Downloading {}".format(file_dest_path))
+        maybe_print(not silent, f"Downloading {file_dest_path}")
         response = requests.get(file_url, stream=True)
         total_length = response.headers.get('content-length')
 
@@ -194,9 +194,8 @@ def download_file(file_url, file_dest_path, silent=False):
                 f.write(data)
                 done = int(50 * dl / total_length)
                 sys.stdout.write(
-                    "\rDownload progress [{}{}] {}%".format(
-                        '=' * done, ' ' * (50-done),
-                        int(100 * dl / total_length)))
+                    f"\rDownload progress [{'=' * done}{' ' * (50 - done)}] {int(100 * dl / total_length)}%"
+                )
                 sys.stdout.flush()
             sys.stdout.write("\n")
             sys.stdout.flush()
@@ -212,12 +211,12 @@ def download_model(model_name, silent=False):
     model_dir = PATHS.get_models_dir_path()
     maybe_mkdir(model_dir)
     model_url = PATHS.get_model_url(model_name)
-    model_archive_path = os.path.join(model_dir, "{}.tar.gz".format(model_name))
+    model_archive_path = os.path.join(model_dir, f"{model_name}.tar.gz")
     download_file(model_url, model_archive_path, silent)
-    maybe_print(not silent, "Download complete\nUnpacking {}".format(model_archive_path))
+    maybe_print(not silent, f"Download complete\nUnpacking {model_archive_path}")
     with tarfile.open(model_archive_path, "r:gz") as tar:
         tar.extractall(path=model_dir)
-    maybe_print(not silent, "Extracting complete\nRemoving {}".format(model_archive_path))
+    maybe_print(not silent, f"Extracting complete\nRemoving {model_archive_path}")
     os.remove(model_archive_path)
     maybe_print(not silent, "Model ready")
 
@@ -233,8 +232,7 @@ def prepare_ssd_model(model_name="ssd_inception_v2_coco_2017_11_17", silent=Fals
         silent (bool): if True, writes progress messages to stdout
     """
     if model_name != "ssd_inception_v2_coco_2017_11_17":
-        raise NotImplementedError(
-            "Model {} is not supported yet".format(model_name))
+        raise NotImplementedError(f"Model {model_name} is not supported yet")
     download_model(model_name, silent)
     ssd_pb_path = PATHS.get_model_pb_path(model_name)
     ssd_uff_path = PATHS.get_model_uff_path(model_name)

@@ -132,7 +132,7 @@ class DarkNetParser(object):
 
         layer_param_block, remainder = remainder.split('\n\n', 1)
         layer_param_lines = layer_param_block.split('\n')[1:]
-        layer_name = str(self.layer_counter).zfill(3) + '_' + layer_type
+        layer_name = f'{str(self.layer_counter).zfill(3)}_{layer_type}'
         layer_dict = dict(type=layer_type)
         if layer_type in self.supported_layers:
             for param_line in layer_param_lines:
@@ -154,14 +154,12 @@ class DarkNetParser(object):
         param_type, param_value_raw = param_line.split('=')
         param_value = None
         if param_type == 'layers':
-            layer_indexes = list()
-            for index in param_value_raw.split(','):
-                layer_indexes.append(int(index))
+            layer_indexes = [int(index) for index in param_value_raw.split(',')]
             param_value = layer_indexes
         elif isinstance(param_value_raw, str) and not param_value_raw.isalpha():
             condition_param_value_positive = param_value_raw.isdigit()
             condition_param_value_negative = param_value_raw[0] == '-' and \
-                param_value_raw[1:].isdigit()
+                    param_value_raw[1:].isdigit()
             if condition_param_value_positive or condition_param_value_negative:
                 param_value = int(param_value_raw)
             else:
@@ -228,8 +226,7 @@ class ConvParams(object):
             assert suffix in ['weights', 'bias']
             if suffix == 'bias':
                 assert not self.batch_normalize
-        param_name = self.node_name + '_' + param_category + '_' + suffix
-        return param_name
+        return f'{self.node_name}_{param_category}_{suffix}'
 
 class ResizeParams(object):
     #Helper class to store the scale parameter for an Resize node.
@@ -247,8 +244,7 @@ class ResizeParams(object):
 
     def generate_param_name(self):
         """Generates the scale parameter name for the Resize node."""
-        param_name = self.node_name + '_' + "scale"
-        return param_name
+        return f'{self.node_name}_scale'
 
 class WeightLoader(object):
     """Helper class used for loading the serialized weights of a binary file stream
@@ -271,8 +267,6 @@ class WeightLoader(object):
         Keyword argument:
         resize_params -- a ResizeParams object
         """
-        initializer = list()
-        inputs = list()
         name = resize_params.generate_param_name()
         shape = resize_params.value.shape
         data = resize_params.value
@@ -280,8 +274,8 @@ class WeightLoader(object):
             name, TensorProto.FLOAT, shape, data)
         scale_input = helper.make_tensor_value_info(
             name, TensorProto.FLOAT, shape)
-        initializer.append(scale_init)
-        inputs.append(scale_input)
+        initializer = [scale_init]
+        inputs = [scale_input]
         return initializer, inputs
 
 
@@ -292,8 +286,8 @@ class WeightLoader(object):
         Keyword argument:
         conv_params -- a ConvParams object
         """
-        initializer = list()
-        inputs = list()
+        initializer = []
+        inputs = []
         if conv_params.batch_normalize:
             bias_init, bias_input = self._create_param_tensors(
                 conv_params, 'bn', 'bias')
@@ -361,13 +355,15 @@ class WeightLoader(object):
         """
         param_name = conv_params.generate_param_name(param_category, suffix)
         channels_out, channels_in, filter_h, filter_w = conv_params.conv_weight_dims
-        if param_category == 'bn':
+        if (
+            param_category != 'bn'
+            and param_category == 'conv'
+            and suffix == 'bias'
+            or param_category == 'bn'
+        ):
             param_shape = [channels_out]
-        elif param_category == 'conv':
-            if suffix == 'weights':
-                param_shape = [channels_out, channels_in, filter_h, filter_w]
-            elif suffix == 'bias':
-                param_shape = [channels_out]
+        elif param_category == 'conv' and suffix == 'weights':
+            param_shape = [channels_out, channels_in, filter_h, filter_w]
         param_size = np.product(np.array(param_shape))
         param_data = np.ndarray(
             shape=param_shape,
@@ -390,14 +386,14 @@ class GraphBuilderONNX(object):
         output dimensions
         """
         self.output_tensors = output_tensors
-        self._nodes = list()
+        self._nodes = []
         self.graph_def = None
         self.input_tensor = None
         self.epsilon_bn = 1e-5
         self.momentum_bn = 0.99
         self.alpha_lrelu = 0.1
         self.param_dict = OrderedDict()
-        self.major_node_specs = list()
+        self.major_node_specs = []
         self.batch_size = 1
 
     def build_onnx_graph(
@@ -419,16 +415,16 @@ class GraphBuilderONNX(object):
             major_node_specs = self._make_onnx_node(layer_name, layer_dict)
             if major_node_specs.name is not None:
                 self.major_node_specs.append(major_node_specs)
-        outputs = list()
+        outputs = []
         for tensor_name in self.output_tensors.keys():
             output_dims = [self.batch_size, ] + \
-                self.output_tensors[tensor_name]
+                    self.output_tensors[tensor_name]
             output_tensor = helper.make_tensor_value_info(
                 tensor_name, TensorProto.FLOAT, output_dims)
             outputs.append(output_tensor)
         inputs = [self.input_tensor]
         weight_loader = WeightLoader(weights_file_path)
-        initializer = list()
+        initializer = []
         # If a layer has parameters, add them to the initializer and input lists.
         for layer_name in self.param_dict.keys():
             _, layer_type = layer_name.split('_', 1)
@@ -453,9 +449,9 @@ class GraphBuilderONNX(object):
         )
         if verbose:
             print(helper.printable_graph(self.graph_def))
-        model_def = helper.make_model(self.graph_def,
-                                      producer_name='NVIDIA TensorRT sample')
-        return model_def
+        return helper.make_model(
+            self.graph_def, producer_name='NVIDIA TensorRT sample'
+        )
 
     def _make_onnx_node(self, layer_name, layer_dict):
         """Take in a layer parameter dictionary, choose the correct function for
@@ -468,13 +464,12 @@ class GraphBuilderONNX(object):
         """
         layer_type = layer_dict['type']
         if self.input_tensor is None:
-            if layer_type == 'net':
-                major_node_output_name, major_node_output_channels = self._make_input_tensor(
-                    layer_name, layer_dict)
-                major_node_specs = MajorNodeSpecs(major_node_output_name,
-                                                  major_node_output_channels)
-            else:
+            if layer_type != 'net':
                 raise ValueError('The first node has to be of type "net".')
+            major_node_output_name, major_node_output_channels = self._make_input_tensor(
+                layer_name, layer_dict)
+            major_node_specs = MajorNodeSpecs(major_node_output_name,
+                                              major_node_output_channels)
         else:
             node_creators = dict()
             node_creators['convolutional'] = self._make_conv_node
@@ -482,15 +477,15 @@ class GraphBuilderONNX(object):
             node_creators['route'] = self._make_route_node
             node_creators['upsample'] = self._make_resize_node
 
-            if layer_type in node_creators.keys():
+            if layer_type in node_creators:
                 major_node_output_name, major_node_output_channels = \
-                    node_creators[layer_type](layer_name, layer_dict)
+                        node_creators[layer_type](layer_name, layer_dict)
                 major_node_specs = MajorNodeSpecs(major_node_output_name,
                                                   major_node_output_channels)
             else:
                 print(
-                    'Layer of type %s not supported, skipping ONNX node generation.' %
-                    layer_type)
+                    f'Layer of type {layer_type} not supported, skipping ONNX node generation.'
+                )
                 major_node_specs = MajorNodeSpecs(layer_name,
                                                   None)
         return major_node_specs
@@ -521,11 +516,14 @@ class GraphBuilderONNX(object):
         target_index -- optional for jumping to a specific index (default: -1 for jumping
         to previous element)
         """
-        previous_node = None
-        for node in self.major_node_specs[target_index::-1]:
-            if node.created_onnx_node:
-                previous_node = node
-                break
+        previous_node = next(
+            (
+                node
+                for node in self.major_node_specs[target_index::-1]
+                if node.created_onnx_node
+            ),
+            None,
+        )
         assert previous_node is not None
         return previous_node
 
@@ -543,11 +541,10 @@ class GraphBuilderONNX(object):
         kernel_size = layer_dict['size']
         stride = layer_dict['stride']
         filters = layer_dict['filters']
-        batch_normalize = False
-        if 'batch_normalize' in layer_dict.keys(
-        ) and layer_dict['batch_normalize'] == 1:
-            batch_normalize = True
-
+        batch_normalize = (
+            'batch_normalize' in layer_dict.keys()
+            and layer_dict['batch_normalize'] == 1
+        )
         kernel_shape = [kernel_size, kernel_size]
         weights_shape = [filters, previous_channels] + kernel_shape
         conv_params = ConvParams(layer_name, batch_normalize, weights_shape)
@@ -575,7 +572,7 @@ class GraphBuilderONNX(object):
         layer_name_output = layer_name
 
         if batch_normalize:
-            layer_name_bn = layer_name + '_bn'
+            layer_name_bn = f'{layer_name}_bn'
             bn_param_suffixes = ['scale', 'bias', 'mean', 'var']
             for suffix in bn_param_suffixes:
                 bn_param_name = conv_params.generate_param_name('bn', suffix)
@@ -593,7 +590,7 @@ class GraphBuilderONNX(object):
             layer_name_output = layer_name_bn
 
         if layer_dict['activation'] == 'leaky':
-            layer_name_lrelu = layer_name + '_lrelu'
+            layer_name_lrelu = f'{layer_name}_lrelu'
 
             lrelu_node = helper.make_node(
                 'LeakyRelu',
@@ -605,9 +602,7 @@ class GraphBuilderONNX(object):
             self._nodes.append(lrelu_node)
             inputs = [layer_name_lrelu]
             layer_name_output = layer_name_lrelu
-        elif layer_dict['activation'] == 'linear':
-            pass
-        else:
+        elif layer_dict['activation'] != 'linear':
             print('Activation not supported.')
 
         self.param_dict[layer_name] = conv_params
@@ -659,7 +654,7 @@ class GraphBuilderONNX(object):
             layer_name = None
             channels = None
         else:
-            inputs = list()
+            inputs = []
             channels = 0
             for index in route_node_indexes:
                 if index > 0:
@@ -737,7 +732,7 @@ def download_file(local_path, link, checksum_reference=None):
     checksum_reference -- expected MD5 checksum of the file
     """
     if not os.path.exists(local_path):
-        print('Downloading from %s, this may take a while...' % link)
+        print(f'Downloading from {link}, this may take a while...')
         wget.download(link, local_path)
         print()
     if checksum_reference is not None:

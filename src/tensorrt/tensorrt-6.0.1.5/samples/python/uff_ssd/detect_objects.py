@@ -125,13 +125,12 @@ def analyze_prediction(detection_out, pred_start_idx, img_pil):
     if confidence > VISUALIZATION_THRESHOLD:
         class_name = COCO_LABELS[label]
         confidence_percentage = "{0:.0%}".format(confidence)
-        print("Detected {} with confidence {}".format(
-            class_name, confidence_percentage))
+        print(f"Detected {class_name} with confidence {confidence_percentage}")
         boxes_utils.draw_bounding_boxes_on_image(
-            img_pil, np.array([[ymin, xmin, ymax, xmax]]),
-            display_str_list=["{}: {}".format(
-                class_name, confidence_percentage)],
-            color=coco_utils.COCO_COLORS[label]
+            img_pil,
+            np.array([[ymin, xmin, ymax, xmax]]),
+            display_str_list=[f"{class_name}: {confidence_percentage}"],
+            color=coco_utils.COCO_COLORS[label],
         )
 
 def parse_commandline_arguments():
@@ -194,11 +193,7 @@ def main():
         ctypes.CDLL(PATHS.get_flatten_concat_plugin_path())
     except:
         print(
-            "Error: {}\n{}\n{}".format(
-                "Could not find {}".format(PATHS.get_flatten_concat_plugin_path()),
-                "Make sure you have compiled FlattenConcat custom plugin layer",
-                "For more details, check README.md"
-            )
+            f"Error: Could not find {PATHS.get_flatten_concat_plugin_path()}\nMake sure you have compiled FlattenConcat custom plugin layer\nFor more details, check README.md"
         )
         sys.exit(1)
 
@@ -229,12 +224,13 @@ def main():
         analyze_prediction(detection_out, det * prediction_fields, img_pil)
 
     # Output total [img load + inference + drawing bboxes] time
-    print("Total time taken for one image: {} ms\n".format(
-        int(round((time.time() - inference_start_time) * 1000))))
+    print(
+        f"Total time taken for one image: {int(round((time.time() - inference_start_time) * 1000))} ms\n"
+    )
 
     # Save output image and output path
     img_pil.save(args.output)
-    print("Saved output image to: {}".format(args.output))
+    print(f"Saved output image to: {args.output}")
 
 
 if __name__ == '__main__':

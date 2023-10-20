@@ -89,8 +89,8 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 ARGS = PARSER.parse_args()
 DATA_DIR = ARGS.datadir
 
-DATA=DATA_DIR + '/mnist/'
-MODEL=DATA_DIR + '/mnist/lenet5.uff'
+DATA = f'{DATA_DIR}/mnist/'
+MODEL = f'{DATA_DIR}/mnist/lenet5.uff'
 # API CHANGE: Try to generalize into a utils function
 #Run inference on device
 def infer(engine, input_img, batch_size):
@@ -125,9 +125,7 @@ def get_testcase(path):
     im = Image.open(path)
     assert(im)
     arr = np.array(im)
-    #make array 1D
-    img = arr.ravel()
-    return img
+    return arr.ravel()
 
 #Also prints case to console 
 def normalize(data):
@@ -164,11 +162,11 @@ def main():
     img = get_testcase(DATA + str(rand_file) + '.pgm')
     data = normalize(img)
 
-    print("Test case: " + str(rand_file))
+    print(f"Test case: {rand_file}")
 
     out = infer(engine, data, 1)
 
-    print("Prediction: " + str(np.argmax(out)))
+    print(f"Prediction: {str(np.argmax(out))}")
 
 
 if __name__ == "__main__":

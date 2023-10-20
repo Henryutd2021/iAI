@@ -47,7 +47,7 @@ def train_model():
 
     # Evaluate the model on test data
     test_loss, test_acc = model.evaluate(x_test, y_test)
-    print("Test loss: {}\nTest accuracy: {}".format(test_loss, test_acc))
+    print(f"Test loss: {test_loss}\nTest accuracy: {test_acc}")
 
     return model
 

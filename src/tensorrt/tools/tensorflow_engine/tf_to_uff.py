@@ -22,7 +22,7 @@ frozen_node_name = ["fc_3/frozen"]
 def getFrozenModel(model_path):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.import_meta_graph(model_path+'.meta')
+        saver = tf.train.import_meta_graph(f'{model_path}.meta')
         saver.restore(sess, model_path)
         graph = tf.get_default_graph().as_graph_def()
         frozen_graph = tf.graph_util.convert_variables_to_constants(sess, graph, frozen_node_name)

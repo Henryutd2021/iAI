@@ -59,10 +59,7 @@ def convert_coco_to_voc(label):
         'couch': 'sofa',
         'tv': 'tvmonitor'
     }
-    if label in COCO_VOC_DICT:
-        return COCO_VOC_DICT[label]
-    else:
-        return label
+    return COCO_VOC_DICT.get(label, label)
 
 def coco_label_to_voc_label(label):
     """Returns VOC label corresponding to given COCO label.
@@ -77,10 +74,7 @@ def coco_label_to_voc_label(label):
         str: VOC label corresponding to given label or None
     """
     label = convert_coco_to_voc(label)
-    if label in VOC_CLASSES_SET:
-        return label
-    else:
-        return None
+    return label if label in VOC_CLASSES_SET else None
 
 def is_voc_label(label):
     """Returns boolean which tells if given label is VOC label.
@@ -100,7 +94,4 @@ def get_voc_label_color(label):
     Returns:
         np.array: RGB color described in 3-element np.array
     """
-    if not is_voc_label(label):
-        return None
-    else:
-        return VOC_COLORS[VOC_CLASS_ID[label]]
+    return None if not is_voc_label(label) else VOC_COLORS[VOC_CLASS_ID[label]]

@@ -119,7 +119,7 @@ def main():
     # Set the data path to the directory that contains the trained models and test images for inference.
     data_path, data_files = common.find_sample_data(description="Runs a ResNet50 network with a TensorRT inference engine.", subfolder="resnet50", find_files=["binoculars.jpeg", "reflex_camera.jpeg", "tabby_tiger_cat.jpg", ModelData.MODEL_PATH, "class_labels.txt"])
     # Get test images, models and labels.
-    test_images = data_files[0:3]
+    test_images = data_files[:3]
     onnx_model_file, labels_file = data_files[3:]
     labels = open(labels_file, 'r').read().split('\n')
 
@@ -139,9 +139,9 @@ def main():
             # We use the highest probability as our prediction. Its index corresponds to the predicted label.
             pred = labels[np.argmax(h_output)]
             if "_".join(pred.split()) in os.path.splitext(os.path.basename(test_case))[0]:
-                print("Correctly recognized " + test_case + " as " + pred)
+                print(f"Correctly recognized {test_case} as {pred}")
             else:
-                print("Incorrectly recognized " + test_case + " as " + pred)
+                print(f"Incorrectly recognized {test_case} as {pred}")
 
 if __name__ == '__main__':
     main()

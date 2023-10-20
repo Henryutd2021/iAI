@@ -63,7 +63,8 @@ class Paths(object):
         return os.path.join(
             self.get_engines_dir_path(),
             inference_type_to_str[inference_type],
-            'engine_bs_{}.buf'.format(max_batch_size))
+            f'engine_bs_{max_batch_size}.buf',
+        )
 
     def get_voc_annotation_cache_path(self):
         return os.path.join(self.get_workspace_dir_path(), 'annotations_cache')
@@ -98,7 +99,7 @@ class Paths(object):
             return self.get_voc_tensorrt_model_detections_path(use_fp16)
 
     def get_model_url(self, model_name):
-        return 'http://download.tensorflow.org/models/object_detection/{}.tar.gz'.format(model_name)
+        return f'http://download.tensorflow.org/models/object_detection/{model_name}.tar.gz'
 
     def get_model_dir_path(self, model_name):
         return os.path.join(self.get_models_dir_path(), model_name)
@@ -151,20 +152,14 @@ class Paths(object):
         voc_image_path = self.get_voc_jpg_img_path()
         for img_number in voc_image_list:
             img = voc_image_path.format(img_number)
-            if not os.path.exists(img):
-                return False
-            return True
+            return bool(os.path.exists(img))
 
 
     # Error printers
 
     def _print_incorrect_voc_error(self, voc_dir):
         print(
-            "Error: {}\n{}\n{}".format(
-                "Incomplete VOC dataset detected (voc_dir: {})".format(voc_dir),
-                "Try redownloading VOC or check if --voc_dir is set up correctly",
-                "For more details, check README.md"
-            )
+            f"Error: Incomplete VOC dataset detected (voc_dir: {voc_dir})\nTry redownloading VOC or check if --voc_dir is set up correctly\nFor more details, check README.md"
         )
 
 

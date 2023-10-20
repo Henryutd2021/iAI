@@ -53,8 +53,8 @@ class TRTInference(object):
 
         # Display requested engine settings to stdout
         print("TensorRT inference engine settings:")
-        print("  * Inference precision - {}".format(trt_engine_datatype))
-        print("  * Max batch size - {}\n".format(batch_size))
+        print(f"  * Inference precision - {trt_engine_datatype}")
+        print(f"  * Max batch size - {batch_size}\n")
 
         # If engine is not cached, we need to build it
         if not os.path.exists(trt_engine_path):
@@ -70,14 +70,13 @@ class TRTInference(object):
 
         # If we get here, the file with engine exists, so we can load it
         if not self.trt_engine:
-            print("Loading cached TensorRT engine from {}".format(
-                trt_engine_path))
+            print(f"Loading cached TensorRT engine from {trt_engine_path}")
             self.trt_engine = engine_utils.load_engine(
                 self.trt_runtime, trt_engine_path)
 
         # This allocates memory for network inputs/outputs on both CPU and GPU
         self.inputs, self.outputs, self.bindings, self.stream = \
-            engine_utils.allocate_buffers(self.trt_engine)
+                engine_utils.allocate_buffers(self.trt_engine)
 
         # Execution context is needed for inference
         self.context = self.trt_engine.create_execution_context()
@@ -110,8 +109,9 @@ class TRTInference(object):
             outputs=self.outputs, stream=self.stream)
 
         # Output inference time
-        print("TensorRT inference time: {} ms".format(
-            int(round((time.time() - inference_start_time) * 1000))))
+        print(
+            f"TensorRT inference time: {int(round((time.time() - inference_start_time) * 1000))} ms"
+        )
 
         # And return results
         return detection_out, keepCount_out
@@ -129,7 +129,8 @@ class TRTInference(object):
         actual_batch_size = len(image_paths)
         if actual_batch_size > max_batch_size:
             raise ValueError(
-                "image_paths list bigger ({}) than engine max batch size ({})".format(actual_batch_size, max_batch_size))
+                f"image_paths list bigger ({actual_batch_size}) than engine max batch size ({max_batch_size})"
+            )
 
         # Load all images to CPU...
         imgs = self._load_imgs(image_paths)
@@ -176,8 +177,7 @@ class TRTInference(object):
         img_np = img_np.transpose((2, 0, 1))
         # Normalize to [-1.0, 1.0] interval (expected by model)
         img_np = (2.0 / 255.0) * img_np - 1.0
-        img_np = img_np.ravel()
-        return img_np
+        return img_np.ravel()
 
 
 # This class is similar as TRTInference inference, but it manages Tensorflow
@@ -208,7 +208,7 @@ class TensorflowInference(object):
             'num_detections', 'detection_boxes',
             'detection_scores', 'detection_classes'
         ]:
-            tensor_name = key + ':0'
+            tensor_name = f'{key}:0'
             if tensor_name in all_tensor_names:
                 tensor_dict[key] = self.detection_graph.get_tensor_by_name(
                     tensor_name)
@@ -221,7 +221,7 @@ class TensorflowInference(object):
         output_dict['num_detections'] = output_dict['num_detections'].astype(np.int32)
         output_dict['detection_classes'] = output_dict[
             'detection_classes'].astype(np.uint8)
-        
+
         return output_dict
 
     def _load_image_into_numpy_array(self, image):
@@ -239,5 +239,4 @@ class TensorflowInference(object):
 
     def _load_img(self, image_path):
         img = Image.open(image_path)
-        img_np = self._load_image_into_numpy_array(img)
-        return img_np
+        return self._load_image_into_numpy_array(img)

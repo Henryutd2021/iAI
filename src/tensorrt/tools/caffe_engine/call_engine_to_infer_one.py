@@ -67,4 +67,4 @@ stream.synchronize()
 
 print("softmax = ", output)
 # print("Test Case: " + str(LABEL))
-print ("Prediction: " + str(np.argmax(output)))
+print(f"Prediction: {str(np.argmax(output))}")

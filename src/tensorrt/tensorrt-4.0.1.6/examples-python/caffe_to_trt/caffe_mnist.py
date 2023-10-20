@@ -105,10 +105,10 @@ ARGS = PARSER.parse_args()
 DATA_DIR = ARGS.datadir
 
 #... (5) Define the paths the model data is located
-MODEL_PROTOTXT = DATA_DIR + '/mnist/mnist.prototxt'
-CAFFE_MODEL =  DATA_DIR + '/mnist/mnist.caffemodel'
-DATA =  DATA_DIR + '/mnist/'
-IMAGE_MEAN =  DATA_DIR + '/mnist/mnist_mean.binaryproto'
+MODEL_PROTOTXT = f'{DATA_DIR}/mnist/mnist.prototxt'
+CAFFE_MODEL = f'{DATA_DIR}/mnist/mnist.caffemodel'
+DATA = f'{DATA_DIR}/mnist/'
+IMAGE_MEAN = f'{DATA_DIR}/mnist/mnist_mean.binaryproto'
 
 
 
@@ -116,9 +116,7 @@ def get_testcase(path):
     im = Image.open(path)
     assert(im)
     arr = np.array(im)
-    #make array 1D
-    img = arr.ravel()
-    return img
+    return arr.ravel()
 
 
 def infer(context, input_img, output_size, batch_size):
@@ -175,7 +173,7 @@ def main():
     #...Randomly pick up the test case
     rand_file = randint(0, 9)
     img = get_testcase(DATA + str(rand_file) + '.pgm')
-    print("Test case: " + str(rand_file))
+    print(f"Test case: {rand_file}")
     #...End Randomly pick up the test case
 
     #... (9) Normalize the data
@@ -196,7 +194,10 @@ def main():
 
     #------- This is really ap to here
 
-    G_LOGGER.log(trt.infer.LogSeverity.INFO, "Parsing caffe model {}, {}".format(deploy_file, model_file))
+    G_LOGGER.log(
+        trt.infer.LogSeverity.INFO,
+        f"Parsing caffe model {deploy_file}, {model_file}",
+    )
 
     '''
     #...Debug print of the Input Dimensions
@@ -215,18 +216,20 @@ def main():
     #...Mark Outputs
     #... (1)
     for l in output_layers:
-        G_LOGGER.log(trt.infer.LogSeverity.INFO, "Marking " + l + " as output layer")
+        G_LOGGER.log(trt.infer.LogSeverity.INFO, f"Marking {l} as output layer")
         t = blob_name_to_tensor.find(l)
         try:
             assert(t)
         except AssertionError:
-            G_LOGGER.log(trt.infer.LogSeverity.ERROR, "Failed to find output layer {}".format(l))
+            G_LOGGER.log(trt.infer.LogSeverity.ERROR, f"Failed to find output layer {l}")
             _, _, tb = sys.exc_info()
             traceback.print_tb(tb) # Fixed format
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
 
-            raise AssertionError('Caffe parsing failed on line {} in statement {}'.format(line, text))
+            raise AssertionError(
+                f'Caffe parsing failed on line {line} in statement {text}'
+            )
 
         layer = network.mark_output(t)
 
@@ -247,7 +250,7 @@ def main():
 
     out = infer(context, normalized_data, OUTPUT_SIZE, 1)
 
-    print("Prediction: " + str(np.argmax(out)))
+    print(f"Prediction: {str(np.argmax(out))}")
 
     context.destroy()
     network.destroy()

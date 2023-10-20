@@ -131,11 +131,11 @@ def main():
     MAX_BATCHSIZE = 1
     # 若用了output_filename参数则返回的是NULL，否则返回的是序列化以后的UFF模型数据
     uff_model = uff.from_tensorflow_frozen_model(frozen_model_path, frozen_node_name) #, output_filename=UFF_PATH, text=True, list_nodes=True)
-    
+
     parser = uffparser.create_uff_parser()
     parser.register_input(frozen_input_name, NET_INPUT_IMAGE_SHAPE, 0) # 0表示输入通道顺序NCHW,1表示输入通道顺序为NHWC
     parser.register_output(frozen_node_name[0])
-    
+
     engine = trt.utils.uff_to_trt_engine(G_LOGGER, uff_model, parser, MAX_BATCHSIZE, MAX_WORKSPACE)
 
     # save engine
@@ -155,12 +155,16 @@ def main():
         # my frozen graph output is logists , here need convert to softmax
         softmax = np.exp(output) / np.sum(np.exp(output))
         predict = np.argmax(softmax)
-        
+
         if int(label) == predict:
             correct += 1
         print("|-------|--------|--------------------------------------------------------")
-        print("|   " + str(label) + "   |    " + str(predict) + "   |    " + str(['{:.2f}%'.format(i*100) for i in softmax]) + "   ")
-    
+        print(
+            f"|   {str(label)}   |    {str(predict)}   |    "
+            + str(['{:.2f}%'.format(i * 100) for i in softmax])
+            + "   "
+        )
+
     accuracy = correct/len(pair)
     print("Accuracy = ", accuracy)
 

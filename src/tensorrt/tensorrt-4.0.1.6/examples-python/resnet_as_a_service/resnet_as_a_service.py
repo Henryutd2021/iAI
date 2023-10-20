@@ -76,9 +76,9 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 
 ARGS = PARSER.parse_args()
 DATA = ARGS.datadir
-LABELS = open(DATA + '/resnet50/class_labels.txt', 'r').read().split('\n') #Get label information
+LABELS = open(f'{DATA}/resnet50/class_labels.txt', 'r').read().split('\n')
 
-ALLOWED_EXTENTIONS = set(['jpg', 'jpeg'])
+ALLOWED_EXTENTIONS = {'jpg', 'jpeg'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1] in ALLOWED_EXTENTIONS
 
@@ -99,19 +99,18 @@ def analyze(output_data):
     # Get top5
     top5 = np.argpartition(output, -5, axis=-1)[-5:]
     top5 = top5[np.argsort(output[top5])][::-1]
-    top5_classes = []
-    for i in top5:
-        top5_classes.append((LABELS[i], output[i]))
-
+    top5_classes = [(LABELS[i], output[i]) for i in top5]
     return [top, top5_classes]
 
 #Arguments to create lite engine
-network = {"framework":"tf",                                     #Source framework
-           "path":DATA+"/resnet50/resnet50-infer-5.pb",          #Path to frozen model
-           "input_nodes":{"input":(3,224,224)},                  #Dictionary of input nodes and their associated dimensions
-           "output_nodes":["GPU_0/tower_0/Softmax"],             #List of output nodes
-           "logger_severity":LogSeverity.INFO,                   #Debugging info
-           "postprocessors":{"GPU_0/tower_0/Softmax":analyze}}   #Postprocessor function table
+network = {
+    "framework": "tf",
+    "path": f"{DATA}/resnet50/resnet50-infer-5.pb",
+    "input_nodes": {"input": (3, 224, 224)},
+    "output_nodes": ["GPU_0/tower_0/Softmax"],
+    "logger_severity": LogSeverity.INFO,
+    "postprocessors": {"GPU_0/tower_0/Softmax": analyze},
+}
 
 engine = Engine(**network)
 
@@ -119,56 +118,27 @@ engine = Engine(**network)
 app = Flask(__name__)
 @app.route("/classify", methods=["POST"])
 def json_classify():
-    if request.method == 'POST':
-        img = Image.open(request.files['file'])
-        #Format image to Numpy CHW and run inference, get the results of the single output node
-        results = engine.infer(image_to_np_CHW(img))[0]
-        #Retrive the results created by the post processor callback
-        top_class_label, top5 = results[0], results[1]
-
-        #Format data for JSON
-        top5_str = []
-        for t in top5:
-            top5_str.append((t[0], str(t[1])))
-        classification_data = {"top_class": top_class_label, "top5": top5_str}
-
-        return jsonify (
-            data = classification_data
-        )
-
-    else:
+    if request.method != 'POST':
         return jsonify (
             error = "Invalid Request Type"
         )
+    img = Image.open(request.files['file'])
+    #Format image to Numpy CHW and run inference, get the results of the single output node
+    results = engine.infer(image_to_np_CHW(img))[0]
+    #Retrive the results created by the post processor callback
+    top_class_label, top5 = results[0], results[1]
+
+    top5_str = [(t[0], str(t[1])) for t in top5]
+    classification_data = {"top_class": top_class_label, "top5": top5_str}
+
+    return jsonify (
+        data = classification_data
+    )
 
 @app.route("/", methods=['GET', 'POST'])
 def html_classify():
-    if request.method == 'POST':
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            img = Image.open(request.files['file'])
-            #Format image to Numpy CHW and run inference, get the results of the single output node
-            results = engine.infer(image_to_np_CHW(img))[0]
-            #Retrive the results created by the post processor callback
-            top_class_label, top5 = results[0], results[1]
-
-            #Format data for JSON
-            top5_str = ""
-            for t in top5:
-                top5_str += ("<li>" + t[0] + ": " + str(t[1]) + "</li>")
-
-            return ("<!doctype html>"
-                "<title> Resnet as a Service </title>"
-                "<h1> Classifed </h1>"
-                "<p> Looks like a " + top_class_label + "</p>"
-                "<h2> Top 5 </h2>"
-                "<ul>"
-                "" + top5_str + ""
-                "</ul>")
-        else:
-            return '''Invalid Upload'''
-
-    return '''
+    if request.method != 'POST':
+        return '''
     <!doctype html>
     <title>Resnet as a Service</title>
     <h1>Upload new File</h1>
@@ -177,6 +147,18 @@ def html_classify():
          <input type=submit value=Upload>
     </form>
     '''
+    file = request.files['file']
+    if not file or not allowed_file(file.filename):
+        return '''Invalid Upload'''
+
+    img = Image.open(request.files['file'])
+    #Format image to Numpy CHW and run inference, get the results of the single output node
+    results = engine.infer(image_to_np_CHW(img))[0]
+    #Retrive the results created by the post processor callback
+    top_class_label, top5 = results[0], results[1]
+
+    top5_str = "".join(f"<li>{t[0]}: {str(t[1])}</li>" for t in top5)
+    return f"<!doctype html><title> Resnet as a Service </title><h1> Classifed </h1><p> Looks like a {top_class_label}</p><h2> Top 5 </h2><ul>{top5_str}</ul>"
 
 if __name__ == "__main__":
     app.run()

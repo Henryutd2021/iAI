@@ -114,10 +114,10 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 ARGS = PARSER.parse_args()
 DATA_DIR = ARGS.datadir
 
-MODEL_PROTOTXT = DATA_DIR + '/mnist/mnist.prototxt'
-CAFFE_MODEL =  DATA_DIR + '/mnist/mnist.caffemodel'
-DATA =  DATA_DIR + '/mnist/'
-IMAGE_MEAN =  DATA_DIR + '/mnist/mnist_mean.binaryproto'
+MODEL_PROTOTXT = f'{DATA_DIR}/mnist/mnist.prototxt'
+CAFFE_MODEL = f'{DATA_DIR}/mnist/mnist.caffemodel'
+DATA = f'{DATA_DIR}/mnist/'
+IMAGE_MEAN = f'{DATA_DIR}/mnist/mnist_mean.binaryproto'
 
 # Run inference on device
 def infer(context, input_img, output_size, batch_size):
@@ -186,14 +186,14 @@ def main():
     rand_file = randint(0, 9)
     img = get_testcase(DATA + str(rand_file) + '.pgm')
 
-    print("Test case: " + str(rand_file))
+    print(f"Test case: {rand_file}")
     data = apply_mean(img, IMAGE_MEAN)
 
     context = engine.create_execution_context()
 
     out = infer(context, data, OUTPUT_SIZE, 1)
 
-    print("Prediction: " + str(np.argmax(out)))
+    print(f"Prediction: {str(np.argmax(out))}")
 
     # Destroy engine
     context.destroy()

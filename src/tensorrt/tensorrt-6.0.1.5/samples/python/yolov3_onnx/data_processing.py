@@ -58,8 +58,7 @@ import os
 # European Conference on Computer Vision. Springer, Cham, 2014.
 
 def load_label_categories(label_file_path):
-    categories = [line.rstrip('\n') for line in open(label_file_path)]
-    return categories
+    return [line.rstrip('\n') for line in open(label_file_path)]
 
 LABEL_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'coco_labels.txt')
 ALL_CATEGORIES = load_label_categories(LABEL_FILE_PATH)
@@ -169,10 +168,7 @@ class PostprocessYOLO(object):
         outputs -- outputs from a TensorRT engine in NCHW format
         resolution_raw -- the original spatial resolution from the input PIL image in WH order
         """
-        outputs_reshaped = list()
-        for output in outputs:
-            outputs_reshaped.append(self._reshape_output(output))
-
+        outputs_reshaped = [self._reshape_output(output) for output in outputs]
         boxes, categories, confidences = self._process_yolo_output(
             outputs_reshaped, resolution_raw)
 
@@ -207,7 +203,7 @@ class PostprocessYOLO(object):
         # E.g. in YOLOv3-608, there are three output tensors, which we associate with their
         # respective masks. Then we iterate through all output-mask pairs and generate candidates
         # for bounding boxes, their corresponding category predictions and their confidences:
-        boxes, categories, confidences = list(), list(), list()
+        boxes, categories, confidences = [], [], []
         for output, mask in zip(outputs_reshaped, self.masks):
             box, category, confidence = self._process_feats(output, mask)
             box, category, confidence = self._filter_boxes(box, category, confidence)
@@ -226,7 +222,7 @@ class PostprocessYOLO(object):
 
         # Using the candidates from the previous (loop) step, we apply the non-max suppression
         # algorithm that clusters adjacent bounding boxes to a single bounding box:
-        nms_boxes, nms_categories, nscores = list(), list(), list()
+        nms_boxes, nms_categories, nscores = [], [], []
         for category in set(categories):
             idxs = np.where(categories == category)
             box = boxes[idxs]
@@ -343,7 +339,7 @@ class PostprocessYOLO(object):
         areas = width * height
         ordered = box_confidences.argsort()[::-1]
 
-        keep = list()
+        keep = []
         while ordered.size > 0:
             # Index of the current element:
             i = ordered[0]
@@ -367,5 +363,4 @@ class PostprocessYOLO(object):
             indexes = np.where(iou <= self.nms_threshold)[0]
             ordered = ordered[indexes + 1]
 
-        keep = np.array(keep)
-        return keep
+        return np.array(keep)

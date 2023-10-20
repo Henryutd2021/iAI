@@ -68,31 +68,35 @@ CUDA_DIR = os.environ.get("CUDA_ROOT_DIR", '/usr/local/cuda')
 CUDNN_DIR = os.environ.get("CUDNN_ROOT_DIR", '/usr/lib/x86_64-linux-gnu')
 TENSORRT_INC_DIR = '/usr/include/x86_64-linux-gnu'
 TENSORRT_LIB_DIR = '/usr/lib/x86_64-linux-gnu'
-CUDA_LIB_DIR = str(CUDA_DIR) + '/lib64'
-CUDNN_LIB = str(CUDNN_DIR) + '/libcudnn.so.' + str(CUDNN_VERSION)
-CUDNN_INC_DIR = str(CUDA_DIR) + '/include'
+CUDA_LIB_DIR = f'{str(CUDA_DIR)}/lib64'
+CUDNN_LIB = f'{str(CUDNN_DIR)}/libcudnn.so.{str(CUDNN_VERSION)}'
+CUDNN_INC_DIR = f'{str(CUDA_DIR)}/include'
 TENSORRT_VERSION = os.environ.get("NVINFER_VERSION",'4')
 
 REQUIRED_PACKAGES = [
   'tensorrt >= 3.0.4'
 ]
 
-SWIG_OPTS = ['-c++',
-             '-v',
-             '-modern',
-             '-builtin',
-             '-Wall',
-             '-fvirtual',
-             '-I' + TENSORRT_INC_DIR,
-             '-I/usr/local/include',
-             '-I/usr/include',
-             '-I/usr/include/c++/4.8/']
+SWIG_OPTS = [
+    '-c++',
+    '-v',
+    '-modern',
+    '-builtin',
+    '-Wall',
+    '-fvirtual',
+    f'-I{TENSORRT_INC_DIR}',
+    '-I/usr/local/include',
+    '-I/usr/include',
+    '-I/usr/include/c++/4.8/',
+]
 
 if PY_VERSION.major > 2:
   SWIG_OPTS.append('-py3')
 
-PYTHON_INC = '/usr/include/python' + str(PY_VERSION.major) + '.' + str(PY_VERSION.minor)
-NUMPY_INC = '/usr/local/lib/python' + str(PY_VERSION.major) + '.' + str(PY_VERSION.minor) + "/numpy/core/include"
+PYTHON_INC = (
+    f'/usr/include/python{str(PY_VERSION.major)}.{str(PY_VERSION.minor)}'
+)
+NUMPY_INC = f'/usr/local/lib/python{str(PY_VERSION.major)}.{str(PY_VERSION.minor)}/numpy/core/include'
 
 INC_DIRS = ['.',
             CUDNN_INC_DIR,
@@ -115,12 +119,14 @@ LIBS = ['cudart',
         'cublas',
         'cudnn']
 
-EXTRA_OBJS = [CUDA_LIB_DIR + '/libcudart.so',
-              CUDNN_LIB,
-              CUDA_LIB_DIR + '/libcublas.so',
-              TENSORRT_LIB_DIR + '/libnvinfer.so.' + TENSORRT_VERSION,
-              TENSORRT_LIB_DIR + '/libnvcaffe_parser.so.' + TENSORRT_VERSION,
-              TENSORRT_LIB_DIR + '/libnvinfer_plugin.so.' + TENSORRT_VERSION]
+EXTRA_OBJS = [
+    f'{CUDA_LIB_DIR}/libcudart.so',
+    CUDNN_LIB,
+    f'{CUDA_LIB_DIR}/libcublas.so',
+    f'{TENSORRT_LIB_DIR}/libnvinfer.so.{TENSORRT_VERSION}',
+    f'{TENSORRT_LIB_DIR}/libnvcaffe_parser.so.{TENSORRT_VERSION}',
+    f'{TENSORRT_LIB_DIR}/libnvinfer_plugin.so.{TENSORRT_VERSION}',
+]
 
 EXTRA_COMPILE_ARGS =  ['-std=c++11',
                        '-DNDEBUG',

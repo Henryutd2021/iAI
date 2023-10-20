@@ -78,7 +78,7 @@ MAX_STEPS = 5000
 IMAGE_SIZE = 28
 IMAGE_PIXELS = IMAGE_SIZE ** 2
 OUTPUT_NAMES = ["fc2/Relu"]
-UFF_OUTPUT_FILENAME = path + "/trained_lenet5.uff"
+UFF_OUTPUT_FILENAME = f"{path}/trained_lenet5.uff"
 
 MNIST_DATASETS = input_data.read_data_sets('/tmp/tensorflow/mnist/input_data')
 
@@ -149,8 +149,7 @@ def training(loss):
     learning_rate = tf.train.exponential_decay(STARTER_LEARNING_RATE, global_step, 100000, 0.75, staircase=True)
     tf.summary.scalar('learning rate', learning_rate)
     optimizer = tf.train.MomentumOptimizer(learning_rate, 0.9)
-    train_op = optimizer.minimize(loss, global_step=global_step)
-    return train_op
+    return optimizer.minimize(loss, global_step=global_step)
 
 def evaluation(logits, labels):
     correct = tf.nn.in_top_k(logits, labels, 1)
@@ -163,11 +162,10 @@ def placeholder_inputs(batch_size):
 
 def fill_feed_dict(data_set, images_pl, labels_pl):
     images_feed, labels_feed = data_set.next_batch(BATCH_SIZE)
-    feed_dict = {
-        images_pl: np.reshape(images_feed, (-1,28,28,1)),
+    return {
+        images_pl: np.reshape(images_feed, (-1, 28, 28, 1)),
         labels_pl: labels_feed,
     }
-    return feed_dict
 
 def do_eval(sess,
             eval_correct,
@@ -179,7 +177,7 @@ def do_eval(sess,
     true_count = 0
     steps_per_epoch = data_set.num_examples // BATCH_SIZE
     num_examples = steps_per_epoch * BATCH_SIZE
-    for step in range(steps_per_epoch):
+    for _ in range(steps_per_epoch):
         feed_dict = fill_feed_dict(data_set,
                                    images_placeholder,
                                    labels_placeholder)

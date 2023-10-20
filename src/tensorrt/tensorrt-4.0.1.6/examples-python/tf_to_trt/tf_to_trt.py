@@ -155,13 +155,13 @@ def main():
     context = engine.create_execution_context()
 
     print("\n| TEST CASE | PREDICTION |")
-    for i in range(ITERATIONS):
+    for _ in range(ITERATIONS):
         img, label = lenet5.get_testcase()
         img = img[0]
         label = label[0]
         out = infer(context, img, 1)
         print("|-----------|------------|")
-        print("|     " + str(label) + "     |      " + str(np.argmax(out)) + "     |")
+        print(f"|     {str(label)}     |      {str(np.argmax(out))}     |")
 
 
 

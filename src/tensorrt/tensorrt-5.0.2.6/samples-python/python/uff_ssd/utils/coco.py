@@ -125,7 +125,4 @@ def get_coco_label_color(label):
     Returns:
         np.array: RGB color described in 3-element np.array
     """
-    if not is_coco_label(label):
-        return None
-    else:
-        return COCO_COLORS[COCO_CLASS_ID[label]]
+    return None if not is_coco_label(label) else COCO_COLORS[COCO_CLASS_ID[label]]
