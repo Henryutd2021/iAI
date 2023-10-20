@@ -39,8 +39,12 @@ def uff2engine(frozen_input_name, net_input_shape,frozen_output_name,uff_path,en
 if __name__ == '__main__':
     
     engine_dir = os.path.dirname(engine_path)
-    if not os.path.exists(engine_dir) and not engine_dir == '.' and not engine_dir =='':
-        print("Warning !!! %s is not exists, now has create "%engine_dir)
+    if (
+        not os.path.exists(engine_dir)
+        and engine_dir != '.'
+        and engine_dir != ''
+    ):
+        print(f"Warning !!! {engine_dir} is not exists, now has create ")
         os.makedirs(engine_dir)
 
     uff2engine(frozen_input_name, net_input_shape,frozen_output_name,uff_path,engine_path)

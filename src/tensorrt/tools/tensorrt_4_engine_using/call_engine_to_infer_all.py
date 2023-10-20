@@ -106,7 +106,11 @@ for img, label in pair:
     predicts.append(predict)
 
     print("|-------|--------|--------------------------------------------------------")
-    print("|   " + str(label) + "   |    " + str(predict) + "   |    " + str(['{:.2f}%'.format(i*100) for i in softmax]) + "   ")
+    print(
+        f"|   {str(label)}   |    {str(predict)}   |    "
+        + str(['{:.2f}%'.format(i * 100) for i in softmax])
+        + "   "
+    )
 
 
 grandTrue = np.array(imgTestData[1][1])

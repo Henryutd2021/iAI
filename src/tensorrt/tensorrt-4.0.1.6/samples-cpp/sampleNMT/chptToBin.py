@@ -112,17 +112,16 @@ def concatenate_layers(params):
     # weights, concatenate all layers
     #process encoder
     if encoder_type == 'bidirectional':
-        bi_layers = int(layers / 2)
+        bi_layers = layers // 2
         if bi_layers == 1:
             bifw_encoder_prefix = u'dynamic_seq2seq/encoder/bidirectional_rnn/fw/basic_lstm_cell/'
             bibw_encoder_prefix = u'dynamic_seq2seq/encoder/bidirectional_rnn/bw/basic_lstm_cell/'
-            data["encrnnkernel"] = params[bifw_encoder_prefix + kernel_alias] 
+            data["encrnnkernel"] = params[bifw_encoder_prefix + kernel_alias]
             tmp_weights = params[bibw_encoder_prefix + kernel_alias]
             data["encrnnkernel"] = np.concatenate((data["encrnnkernel"], tmp_weights), axis=0)
 
             data["encrnnbias"] = params[bifw_encoder_prefix + bias_alias]
             tmp_weights = params[bibw_encoder_prefix + bias_alias]
-            data["encrnnbias"] = np.concatenate((data["encrnnbias"], tmp_weights), axis=0)
         else:
             bifw_encoder_prefix = u'dynamic_seq2seq/encoder/bidirectional_rnn/fw/multi_rnn_cell/cell_'
             bibw_encoder_prefix = u'dynamic_seq2seq/encoder/bidirectional_rnn/bw/multi_rnn_cell/cell_'
@@ -141,7 +140,7 @@ def concatenate_layers(params):
             tmp_weights = np.concatenate(tuple(params[bibw_encoder_prefix + str(i) \
                                         + encoder_postfix + bias_alias] \
                                         for i in range(bi_layers)), axis=0)
-            data["encrnnbias"] = np.concatenate((data["encrnnbias"], tmp_weights), axis=0)
+        data["encrnnbias"] = np.concatenate((data["encrnnbias"], tmp_weights), axis=0)
     else:
         uni_encoder_prefix = u'dynamic_seq2seq/encoder/rnn/multi_rnn_cell/cell_'
         data["encrnnkernel"] = np.concatenate(tuple(params[uni_encoder_prefix + str(i) \
@@ -216,53 +215,32 @@ def convert_rnn_kernel(weights, dimensions, is_decoder_rnn = False):
 
 
     new_weights = np.empty([0], dtype=np.float32)
-    # if is_decoder_rnn == False:
-    if False :
-        # we can use decoder path for both, but we leave it for now
-        input_size = num_units
-        # case encoder
-        # (layers * 2 * input_size, 4 * num_units) -> (layers, 2, input_size, 4, num_units))
-        weights = np.reshape(weights, (layers, 2, input_size, 4, num_units))
-        print("After reshape: {0}".format(weights.shape))
+    offset = 0
+    for i in range(layers):
+        # first layer has shape (input_size + num_units, 4 * num_units)
+        # other layers  (num_units + num_units, 4 * num_units)
+        input_size = 2 * num_units if i == 0 and is_decoder_rnn else num_units
+        temp_weights_w = np.empty([4, num_units, input_size], dtype=np.float32)
+        temp_weights_r = np.empty([4, num_units, num_units], dtype=np.float32)
 
-        # reorder/transpose axis to match TensorRT format (layers, 2, 4, num_units, input_size) 
-        weights = np.moveaxis(weights, [2, 3, 4], [4, 2, 3])
-        print("After moveaxis: {0}".format(weights.shape))
+        layer_weights_w = np.reshape(weights[offset:(offset + input_size), :], (input_size, 4, num_units))
+        layer_weights_r = np.reshape(weights[(offset + input_size):(offset + input_size + num_units), :], (num_units, 4, num_units))
+
+        # reorder/transpose axis to match TensorRT format (layers, 2, 4, num_units, input_size)
+        layer_weights_w = np.moveaxis(layer_weights_w, [0, 1, 2], [2, 0, 1])
+        layer_weights_r = np.moveaxis(layer_weights_r, [0, 1, 2], [2, 0, 1])
 
         # then we reorder gates from Tensorflow's 'icfo' into TensorRT's 'fico' order
         input_perm = [ 1, 2, 0, 3 ]
-        temp_weights = np.empty([layers, 2, 4, num_units, input_size], dtype=np.float32)
         for i in range(4):
-            temp_weights[:, :, input_perm[i], :, :] = weights[:, :, i, :, :]
+            temp_weights_w[input_perm[i], :, :] = layer_weights_w[i, :, :]
+            temp_weights_r[input_perm[i], :, :] = layer_weights_r[i, :, :]
 
-        weights = deepcopy(temp_weights)
-    else:
-        offset = 0
-        for i in range(layers):
-            # first layer has shape (input_size + num_units, 4 * num_units)
-            # other layers  (num_units + num_units, 4 * num_units)
-            input_size = 2 * num_units if i == 0 and is_decoder_rnn else num_units
-            temp_weights_w = np.empty([4, num_units, input_size], dtype=np.float32)
-            temp_weights_r = np.empty([4, num_units, num_units], dtype=np.float32)
+        layer_weights_w = deepcopy(temp_weights_w.flatten())
+        layer_weights_r = deepcopy(temp_weights_r.flatten())
+        new_weights = np.concatenate((new_weights, layer_weights_w, layer_weights_r), axis = 0)
 
-            layer_weights_w = np.reshape(weights[offset:(offset + input_size), :], (input_size, 4, num_units))
-            layer_weights_r = np.reshape(weights[(offset + input_size):(offset + input_size + num_units), :], (num_units, 4, num_units))
-
-            # reorder/transpose axis to match TensorRT format (layers, 2, 4, num_units, input_size)
-            layer_weights_w = np.moveaxis(layer_weights_w, [0, 1, 2], [2, 0, 1])
-            layer_weights_r = np.moveaxis(layer_weights_r, [0, 1, 2], [2, 0, 1])
-
-            # then we reorder gates from Tensorflow's 'icfo' into TensorRT's 'fico' order
-            input_perm = [ 1, 2, 0, 3 ]
-            for i in range(4):
-                temp_weights_w[input_perm[i], :, :] = layer_weights_w[i, :, :]
-                temp_weights_r[input_perm[i], :, :] = layer_weights_r[i, :, :]
-
-            layer_weights_w = deepcopy(temp_weights_w.flatten())
-            layer_weights_r = deepcopy(temp_weights_r.flatten())
-            new_weights = np.concatenate((new_weights, layer_weights_w, layer_weights_r), axis = 0)
-
-            offset = offset + input_size + num_units
+        offset = offset + input_size + num_units
 
     return new_weights
 
@@ -365,13 +343,13 @@ def main(_):
                      help="Output weights directory")
     trt_flags, unparsed = nmt_parser.parse_known_args()
 
-    if trt_flags.metafile == None:
+    if trt_flags.metafile is None:
         params = chpt_to_dict_arrays()
     else:
         params = chpt_to_dict_arrays(trt_flags.metafile)
 
     print('\nLoading the checkpoint...\n')
-    
+
     print('\nConcatenating the weights...')
     dimensions, data = concatenate_layers(params)
 
@@ -384,48 +362,71 @@ def main(_):
     case_dir = trt_flags.weightsdir
     if not os.path.isdir(case_dir):
         os.mkdir(case_dir)
-    case_dir = case_dir + "/"
+    case_dir = f"{case_dir}/"
 
     trt_string = u'trtsamplenmt'
     # save embed weights
-    save_layer_weights(data, ["encembed"], \
-                        [ dimensions["encembed_outputs"], \
-                          dimensions["num_units"] ], \
-                        trt_string, case_dir + "encembed.bin")
-    save_layer_weights(data, ["decembed"], \
-                        [ dimensions["decembed_outputs"], \
-                        dimensions["num_units"] ], \
-                        trt_string, case_dir + "decembed.bin")
+    save_layer_weights(
+        data,
+        ["encembed"],
+        [dimensions["encembed_outputs"], dimensions["num_units"]],
+        trt_string,
+        f"{case_dir}encembed.bin",
+    )
+    save_layer_weights(
+        data,
+        ["decembed"],
+        [dimensions["decembed_outputs"], dimensions["num_units"]],
+        trt_string,
+        f"{case_dir}decembed.bin",
+    )
     #encrnn
-    save_layer_weights(data, ["encrnnkernel", "encrnnbias"], \
-                        [ dimensions["encoder_type"], \
-                        dimensions["layers"], \
-                        dimensions["num_units"] ], \
-                        trt_string, case_dir + "encrnn.bin")
+    save_layer_weights(
+        data,
+        ["encrnnkernel", "encrnnbias"],
+        [
+            dimensions["encoder_type"],
+            dimensions["layers"],
+            dimensions["num_units"],
+        ],
+        trt_string,
+        f"{case_dir}encrnn.bin",
+    )
     #decrnn
-    save_layer_weights(data, ["decrnnkernel", "decrnnbias"], \
-                        [ 0, \
-                        dimensions["layers"], \
-                        dimensions["num_units"] ], \
-                        trt_string, case_dir + "decrnn.bin")
+    save_layer_weights(
+        data,
+        ["decrnnkernel", "decrnnbias"],
+        [0, dimensions["layers"], dimensions["num_units"]],
+        trt_string,
+        f"{case_dir}decrnn.bin",
+    )
     #decprojkernel
-    save_layer_weights(data, ["decprojkernel"], \
-                        [ dimensions["num_units"], \
-                        dimensions["decembed_outputs"] ], \
-                        trt_string, case_dir + "decproj.bin")
+    save_layer_weights(
+        data,
+        ["decprojkernel"],
+        [dimensions["num_units"], dimensions["decembed_outputs"]],
+        trt_string,
+        f"{case_dir}decproj.bin",
+    )
 
     #decmemkernel
-    save_layer_weights(data, ["decmemkernel"], \
-                        [ dimensions["num_units"], \
-                        dimensions["num_units"] ], \
-                        trt_string, case_dir + "decmem.bin")
-                        
+    save_layer_weights(
+        data,
+        ["decmemkernel"],
+        [dimensions["num_units"], dimensions["num_units"]],
+        trt_string,
+        f"{case_dir}decmem.bin",
+    )
+
     #decattkernel
     # first dimension is 3 * num_units of bi RNN, 2 * num_units otherwise
-    save_layer_weights(data, ["decattkernel"], \
-                        [ data["decattkernel"].shape[0], \
-                        dimensions["num_units"] ], \
-                        trt_string, case_dir + "decatt.bin")
+    save_layer_weights(
+        data,
+        ["decattkernel"],
+        [data["decattkernel"].shape[0], dimensions["num_units"]],
+        trt_string,
+        f"{case_dir}decatt.bin",
+    )
 
 
 if __name__ == "__main__":

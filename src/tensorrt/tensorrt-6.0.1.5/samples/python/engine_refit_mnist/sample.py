@@ -135,8 +135,8 @@ def check_output(engine, inputs, outputs, bindings, stream, mnist_model):
         # The common.do_inference function will return a list of outputs - we only have one in this case.
         [output] = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
         pred = np.argmax(output)
-        print("Test Case: " + str(case_num))
-        print("Prediction: " + str(pred))
+        print(f"Test Case: {str(case_num)}")
+        print(f"Prediction: {str(pred)}")
         return case_num == pred
 
 def main():

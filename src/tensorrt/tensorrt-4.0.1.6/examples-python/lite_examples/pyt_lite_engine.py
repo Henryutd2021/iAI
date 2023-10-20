@@ -187,7 +187,7 @@ def generate_cases(num):
 
 def main():
     # Load pretrained PyTorch model
-    model = torch.load(DATA_DIR + "/mnist/trained_lenet5_mnist.pyt")
+    model = torch.load(f"{DATA_DIR}/mnist/trained_lenet5_mnist.pyt")
 
     # Build an engine from PyTorch
     builder = trt.infer.create_infer_builder(GLOGGER)
@@ -209,7 +209,7 @@ def main():
     correct = 0
     print ("[LABEL] | [RESULT]")
     for l in range(len(target)):
-        print ("   {}    |    {}   ".format(target[l], results[l]))
+        print(f"   {target[l]}    |    {results[l]}   ")
         if target[l] == results[l]:
             correct += 1
     print ("Inference: {:.2f}% Correct".format((correct / float(len(target))) * 100))

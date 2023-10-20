@@ -80,8 +80,7 @@ def parse_voc_annotation_xml(voc_annotiotion_xml):
     size = tree.find('size')
     objects = []
     for obj in tree.findall('object'):
-        obj_struct = {}
-        obj_struct['image_width'] = size.find('width').text
+        obj_struct = {'image_width': size.find('width').text}
         obj_struct['image_height'] = size.find('height').text
         obj_struct['name'] = obj.find('name').text
         obj_struct['pose'] = obj.find('pose').text
@@ -111,7 +110,7 @@ def get_voc_results_file_template(cls, results_dir):
         str: Detection results path for given class.
     """
     # VOCdevkit/VOC2007/results/det_test_aeroplane.txt
-    filename = 'det_test_{}.txt'.format(cls)
+    filename = f'det_test_{cls}.txt'
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     path = os.path.join(results_dir, filename)
@@ -120,7 +119,7 @@ def get_voc_results_file_template(cls, results_dir):
 def do_python_eval(results_dir):
     cachedir = PATHS.get_voc_annotation_cache_path()
     aps = []
-    for i, cls in enumerate(voc_utils.VOC_CLASSES_LIST):
+    for cls in voc_utils.VOC_CLASSES_LIST:
         filename = get_voc_results_file_template(cls, results_dir)
         rec, prec, ap = voc_eval(
            filename,
@@ -134,10 +133,7 @@ def do_python_eval(results_dir):
 def voc_ap(rec, prec):
     ap = 0.
     for t in np.arange(0., 1.1, 0.1):
-        if np.sum(rec >= t) == 0:
-            p = 0
-        else:
-            p = np.max(prec[rec >= t])
+        p = 0 if np.sum(rec >= t) == 0 else np.max(prec[rec >= t])
         ap = ap + p / 11.
     return ap
 
@@ -252,16 +248,19 @@ def voc_eval(detpath,
                 ovmax = np.max(overlaps)
                 jmax = np.argmax(overlaps)
 
-            if ovmax > ovthresh:
-                if not R['difficult'][jmax]:
-                    if not R['det'][jmax]:
-                        tp[detection] = 1.
-                        R['det'][jmax] = 1
-                    else:
-                        fp[detection] = 1.
-            else:
+            if (
+                ovmax > ovthresh
+                and not R['difficult'][jmax]
+                and not R['det'][jmax]
+            ):
+                tp[detection] = 1.
+                R['det'][jmax] = 1
+            elif (
+                ovmax > ovthresh
+                and not R['difficult'][jmax]
+                or ovmax <= ovthresh
+            ):
                 fp[detection] = 1.
-
         # Compute precision and recall
         fp = np.cumsum(fp)
         tp = np.cumsum(tp)

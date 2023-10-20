@@ -86,22 +86,23 @@ def find_sample_data(description="Runs a TensorRT Python sample", subfolder="", 
     # If the subfolder exists, append it to the path, otherwise use the provided path as-is.
     subfolder_path = os.path.join(data_root, subfolder)
     if not os.path.exists(subfolder_path):
-        print("WARNING: " + subfolder_path + " does not exist. Using " + data_root + " instead.")
+        print(f"WARNING: {subfolder_path} does not exist. Using {data_root} instead.")
     data_path = subfolder_path if os.path.exists(subfolder_path) else data_root
 
     # Make sure data directory exists.
     if not (os.path.exists(data_path)):
-        raise FileNotFoundError(data_path + " does not exist. Please provide the correct data path with the -d option.")
+        raise FileNotFoundError(
+            f"{data_path} does not exist. Please provide the correct data path with the -d option."
+        )
 
     # Find all requested files.
     for index, f in enumerate(find_files):
         find_files[index] = os.path.abspath(os.path.join(data_path, f))
         if not os.path.exists(find_files[index]):
-            raise FileNotFoundError(find_files[index] + " does not exist. Please provide the correct data path with the -d option.")
-    if find_files:
-        return data_path, find_files
-    else:
-        return data_path
+            raise FileNotFoundError(
+                f"{find_files[index]} does not exist. Please provide the correct data path with the -d option."
+            )
+    return (data_path, find_files) if find_files else data_path
 
 # Simple helper data class that's a little nicer to use than a 2-tuple.
 class HostDeviceMem(object):

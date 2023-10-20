@@ -121,7 +121,7 @@ def get_engine(deploy_file, model_file, engine_path):
 # Loads a test case into the provided pagelocked_buffer.
 def load_normalized_test_case(data_paths, mean):
     case_num = randint(0, 9)
-    [test_case_path] = common.locate_files(data_paths, [str(case_num) + ".pgm"])
+    [test_case_path] = common.locate_files(data_paths, [f"{case_num}.pgm"])
     # Flatten the image into a 1D array, and normalize.
     img = np.array(Image.open(test_case_path)).ravel() - mean
     return img, case_num
@@ -132,7 +132,7 @@ def main():
 
     # Cache the engine in a temporary directory.
     engine_path = os.path.join(tempfile.gettempdir(), "mnist.engine")
-    with get_engine(deploy_file, model_file, engine_path) as engine, engine.create_execution_context() as context:
+    with (get_engine(deploy_file, model_file, engine_path) as engine, engine.create_execution_context() as context):
         # Build an engine, allocate buffers and create a stream.
         # For more information on buffer allocation, refer to the introductory samples.
         inputs, outputs, bindings, stream = common.allocate_buffers(engine)
@@ -142,8 +142,8 @@ def main():
         # The common.do_inference function will return a list of outputs - we only have one in this case.
         [output] = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
         pred = np.argmax(output)
-        print("Test Case: " + str(case_num))
-        print("Prediction: " + str(pred))
+        print(f"Test Case: {str(case_num)}")
+        print(f"Prediction: {str(pred)}")
 
     # After the engine is destroyed, we destroy the plugin. This function is exposed through the binding code in plugin/pyFullyConnected.cpp.
     fc_factory.destroy_plugin()

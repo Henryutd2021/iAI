@@ -90,8 +90,8 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 ARGS = PARSER.parse_args()
 DATA_DIR = ARGS.datadir
 
-DATA=DATA_DIR + '/mnist/'
-MODEL=DATA_DIR + '/mnist/mnist.onnx'
+DATA = f'{DATA_DIR}/mnist/'
+MODEL = f'{DATA_DIR}/mnist/mnist.onnx'
 
 #Run inference on device
 def infer(engine, input_img, batch_size):
@@ -128,9 +128,7 @@ def get_testcase(path):
     im = Image.open(path)
     assert(im)
     arr = np.array(im)
-    #make array 1D
-    img = arr.ravel()
-    return img
+    return arr.ravel()
 
 #Also prints case to console
 def normalize(data):
@@ -179,13 +177,13 @@ def main():
     rand_file = randint(0, 9)
     img = get_testcase(DATA + str(rand_file) + '.pgm')
     data = normalize(img)
-    print("Test case: " + str(rand_file))
+    print(f"Test case: {rand_file}")
     if data.size == 0:
         msg = "The input tensor is of zero size - please check your path to the input or the file type"
         G_LOGGER.log(trt.infer.Logger.Severity_kERROR, msg)
 
     out = infer(engine, data, 1)
-    print("Prediction: " + str(np.argmax(out)))
+    print(f"Prediction: {str(np.argmax(out))}")
 
     # clean up
     engine.destroy()

@@ -89,7 +89,7 @@ def find_sample_data(description="Runs a TensorRT Python sample", subfolder="", 
         # If the subfolder exists, append it to the path, otherwise use the provided path as-is.
         data_path = os.path.join(data_dir, subfolder)
         if not os.path.exists(data_path):
-            print("WARNING: " + data_path + " does not exist. Trying " + data_dir + " instead.")
+            print(f"WARNING: {data_path} does not exist. Trying {data_dir} instead.")
             data_path = data_dir
         # Make sure data directory exists.
         if not (os.path.exists(data_path)):

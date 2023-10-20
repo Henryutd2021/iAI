@@ -147,10 +147,10 @@ def main():
     output_shapes = [(1, 255, 19, 19), (1, 255, 38, 38), (1, 255, 76, 76)]
     # Do inference with TensorRT
     trt_outputs = []
-    with get_engine(onnx_file_path, engine_file_path) as engine, engine.create_execution_context() as context:
+    with (get_engine(onnx_file_path, engine_file_path) as engine, engine.create_execution_context() as context):
         inputs, outputs, bindings, stream = common.allocate_buffers(engine)
         # Do inference
-        print('Running inference on image {}...'.format(input_image_path))
+        print(f'Running inference on image {input_image_path}...')
         # Set host input to the image. The common.do_inference function will copy the input to the GPU before executing.
         inputs[0].host = image
         trt_outputs = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
@@ -173,7 +173,9 @@ def main():
     obj_detected_img = draw_bboxes(image_raw, boxes, scores, classes, ALL_CATEGORIES)
     output_image_path = 'dog_bboxes.png'
     obj_detected_img.save(output_image_path, 'PNG')
-    print('Saved image with bounding boxes of detected objects to {}.'.format(output_image_path))
+    print(
+        f'Saved image with bounding boxes of detected objects to {output_image_path}.'
+    )
 
 if __name__ == '__main__':
     main()

@@ -160,4 +160,7 @@ def get_testcase():
 if __name__ == '__main__':
     learn()
     print(model)
-    torch.save(model.state_dict(), os.path.dirname(os.path.realpath(__file__)) + "/trained_mnist.pyt")
+    torch.save(
+        model.state_dict(),
+        f"{os.path.dirname(os.path.realpath(__file__))}/trained_mnist.pyt",
+    )

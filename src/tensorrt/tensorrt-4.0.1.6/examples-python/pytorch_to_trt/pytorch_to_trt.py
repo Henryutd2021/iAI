@@ -231,7 +231,7 @@ def main():
         context = engine.create_execution_context()
         out = infer(context, img_in, OUTPUT_SIZE, 1)
         print("|-----------|------------|")
-        print("|     " + str(target_in) + "     |      " + str(np.argmax(out)) + "     |")
+        print(f"|     {str(target_in)}     |      {str(np.argmax(out))}     |")
 
     print('')
     context.destroy()

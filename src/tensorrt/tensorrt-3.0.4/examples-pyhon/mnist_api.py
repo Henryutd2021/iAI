@@ -90,9 +90,9 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 
 DATA_DIR = PARSER.parse_args().datadir
 
-WEIGHTS_PATH = DATA_DIR + '/mnist/mnistapi.wts'
-MEAN = DATA_DIR + '/mnist/mnist_mean.binaryproto'
-DATA = DATA_DIR + '/mnist/'
+WEIGHTS_PATH = f'{DATA_DIR}/mnist/mnistapi.wts'
+MEAN = f'{DATA_DIR}/mnist/mnist_mean.binaryproto'
+DATA = f'{DATA_DIR}/mnist/'
 
 def create_MNIST_engine(max_batch_size, builder, dt, weights_file):
     network = builder.create_network()
@@ -196,9 +196,7 @@ def get_testcase(path):
     im = Image.open(path)
     assert(im)
     arr = np.array(im)
-    #make array 1D
-    img = arr.ravel()
-    return img
+    return arr.ravel()
 
 
 def apply_mean(img, mean_path):
@@ -224,7 +222,7 @@ def main():
     rand_file = randint(0, 9)
     img = get_testcase(DATA + str(rand_file) + '.pgm')
 
-    print("Test case: " + str(rand_file))
+    print(f"Test case: {rand_file}")
 
     data = apply_mean(img, MEAN)
 
@@ -238,7 +236,7 @@ def main():
 
     out = infer(context, data, OUTPUT_SIZE, 1)
 
-    print("Prediction: " + str(np.argmax(out)))
+    print(f"Prediction: {str(np.argmax(out))}")
 
     context.destroy()
     engine.destroy()

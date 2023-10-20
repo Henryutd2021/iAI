@@ -93,32 +93,28 @@ def float_to_hex(f):
     return hex(struct.unpack('<I', struct.pack('<f', f))[0])
 
 try:
-   reader = pyTF.NewCheckpointReader(inputbase)
-   tensorDict = reader.get_variable_to_shape_map()
-   outputFileName = outputbase + ".wts2"
-   outputFile = open(outputFileName, 'w')
-   count = 0
+    reader = pyTF.NewCheckpointReader(inputbase)
+    tensorDict = reader.get_variable_to_shape_map()
+    outputFileName = f"{outputbase}.wts2"
+    with open(outputFileName, 'w') as outputFile:
+        count = sum(
+            1
+            for key in sorted(tensorDict)
+            if "Adam" not in key and "power" not in key
+        )
+        outputFile.write("%s\n"%(count))
 
-   for key in sorted(tensorDict):
-       # Don't count weights that aren't used for inferencing.
-       if ("Adam" in key or "power" in key):
-           continue
-       count += 1
-   outputFile.write("%s\n"%(count))
-
-   for key in sorted(tensorDict):
-       # In order to save space, we don't dump weights that aren't required.
-       if ("Adam" in key or "power" in key):
-           continue
-       tensor = reader.get_tensor(key)
-       file_key = remap[key.replace('/','_')]
-       val = tensor.shape
-       print("%s 0 %s "%(file_key, val))
-       flat_tensor = tensor.flatten()
-       outputFile.write("%s 0 %s "%(file_key, val))
-       outputFile.write(flat_tensor.tobytes())
-       outputFile.write("\n");
-   outputFile.close()
-
+        for key in sorted(tensorDict):
+            # In order to save space, we don't dump weights that aren't required.
+            if ("Adam" in key or "power" in key):
+                continue
+            tensor = reader.get_tensor(key)
+            file_key = remap[key.replace('/','_')]
+            val = tensor.shape
+            print(f"{file_key} 0 {val} ")
+            flat_tensor = tensor.flatten()
+            outputFile.write(f"{file_key} 0 {val} ")
+            outputFile.write(flat_tensor.tobytes())
+            outputFile.write("\n");
 except Exception as error:
-    print(str(error))
+    print(error)

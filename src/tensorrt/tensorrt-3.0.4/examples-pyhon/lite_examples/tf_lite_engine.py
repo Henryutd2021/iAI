@@ -88,13 +88,15 @@ def normalize(data):
 #Lamba to apply argmax to each result after inference to get prediction
 argmax = lambda res: np.argmax(res.reshape(-1))
 
-mnist_engine = tensorrt.lite.Engine(framework="tf",                                  #Source framework 
-                                    path=DATA_DIR + "/mnist/lenet5_mnist_frozen.pb",       #Model File
-                                    max_batch_size=10,                               #Max number of images to be processed at a time
-                                    input_nodes={"in":(1,28,28)},                  #Input layers
-                                    output_nodes=["out"],                           #Ouput layers
-                                    preprocessors={"in":normalize},                 #Preprocessing functions
-                                    postprocessors={"out":argmax})                  #Postprocesssing functions
+mnist_engine = tensorrt.lite.Engine(
+    framework="tf",
+    path=f"{DATA_DIR}/mnist/lenet5_mnist_frozen.pb",
+    max_batch_size=10,
+    input_nodes={"in": (1, 28, 28)},
+    output_nodes=["out"],
+    preprocessors={"in": normalize},
+    postprocessors={"out": argmax},
+)
 
                                
 def generate_cases(num):
@@ -103,9 +105,9 @@ def generate_cases(num):
     '''
     cases = []
     labels = []
-    for c in range(num):
+    for _ in range(num):
         rand_file = randint(0, 9)
-        im = Image.open(DATA_DIR + "/mnist/" + str(rand_file) + ".pgm")
+        im = Image.open(f"{DATA_DIR}/mnist/{rand_file}.pgm")
         arr = np.array(im).reshape(1,28,28) #Make the image CHANNEL x HEIGHT x WIDTH
         cases.append(arr) #Append the image to list of images to process
         labels.append(rand_file) #Append the correct answer to compare later
@@ -122,7 +124,7 @@ def main():
     correct = 0
     print ("[LABEL] | [RESULT]")
     for l in range(len(target)):
-        print ("   {}    |    {}   ".format(target[l], results[l]))
+        print(f"   {target[l]}    |    {results[l]}   ")
         if target[l] == results[l]:
             correct += 1
     print ("Inference: {:.2f}% Correct".format((correct / len(target)) * 100))

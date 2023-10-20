@@ -121,8 +121,8 @@ PARSER.add_argument('datadir', help='Path to Python TensorRT data directory (rea
 
 DATA_DIR = PARSER.parse_args().datadir
 
-MODEL_PROTOTXT = DATA_DIR + "/googlenet/googlenet.prototxt"
-CAFFEMODEL = DATA_DIR + "/googlenet/googlenet.caffemodel"
+MODEL_PROTOTXT = f"{DATA_DIR}/googlenet/googlenet.prototxt"
+CAFFEMODEL = f"{DATA_DIR}/googlenet/googlenet.caffemodel"
 
 #Run inference on device
 def time_inference(engine, batch_size):
@@ -147,7 +147,7 @@ def time_inference(engine, batch_size):
 
     cuda.memset_d32(d_input, 0, insize // 4)
 
-    for i in range(TIMING_INTERATIONS):
+    for _ in range(TIMING_INTERATIONS):
         context.execute(batch_size, bindings)
 
     context.destroy()
@@ -172,9 +172,9 @@ def main():
     print("Bindings after deserializing")
     for bi in range(engine.get_nb_bindings()):
         if engine.binding_is_input(bi) == True:
-            print("Binding " + str(bi) + " (" + engine.get_binding_name(bi) + "): Input")
+            print(f"Binding {str(bi)} ({engine.get_binding_name(bi)}): Input")
         else:
-            print("Binding " + str(bi) + " (" + engine.get_binding_name(bi) + "): Output")
+            print(f"Binding {str(bi)} ({engine.get_binding_name(bi)}): Output")
 
     time_inference(engine, BATCH_SIZE)
 

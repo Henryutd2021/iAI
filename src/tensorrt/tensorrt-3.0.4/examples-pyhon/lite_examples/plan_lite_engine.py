@@ -82,7 +82,9 @@ DATA_DIR = ARGS.datadir
 
 #Get the mean image from the caffe binaryproto file 
 parser = caffeparser.create_caffe_parser()
-mean_blob = parser.parse_binary_proto(DATA_DIR + "/mnist/mnist_mean.binaryproto")
+mean_blob = parser.parse_binary_proto(
+    f"{DATA_DIR}/mnist/mnist_mean.binaryproto"
+)
 # parser.destroy()
 MEAN = mean_blob.get_data(28 * 28)
 
@@ -102,13 +104,15 @@ def sub_mean(img):
 argmax = lambda res: np.argmax(res.reshape(10))
 
 #Create an engine from a caffe model
-caffe_engine = tensorrt.lite.Engine(framework="c1",                                   #Source framework 
-                                    deployfile=DATA_DIR + "/mnist/mnist.prototxt",    #Deploy file 
-                                    modelfile=DATA_DIR + "/mnist/mnist.caffemodel",   #Model File
-                                    max_batch_size=10,                                #Max number of images to be processed at a time
-                                    logger_severity=tensorrt.infer.LogSeverity.ERROR, #Suppress debugging info  
-                                    input_nodes={"data":(1,28,28)},                   #Input layers
-                                    output_nodes=["prob"])                            #Output layers
+caffe_engine = tensorrt.lite.Engine(
+    framework="c1",
+    deployfile=f"{DATA_DIR}/mnist/mnist.prototxt",
+    modelfile=f"{DATA_DIR}/mnist/mnist.caffemodel",
+    max_batch_size=10,
+    logger_severity=tensorrt.infer.LogSeverity.ERROR,
+    input_nodes={"data": (1, 28, 28)},
+    output_nodes=["prob"],
+)
 
 #Save engine and delete
 caffe_engine.save("/tmp/caffe_lenet5_mnist.plan")
@@ -125,9 +129,9 @@ def generate_cases(num):
     '''
     cases = []
     labels = []
-    for c in range(num):
+    for _ in range(num):
         rand_file = randint(0, 9)
-        im = Image.open(DATA_DIR + "/mnist/" + str(rand_file) + ".pgm")
+        im = Image.open(f"{DATA_DIR}/mnist/{rand_file}.pgm")
         arr = np.array(im).reshape(1,28,28) #Make the image CHANNEL x HEIGHT x WIDTH
         cases.append(arr) #Append the image to list of images to process
         labels.append(rand_file) #Append the correct answer to compare later
@@ -144,7 +148,7 @@ def main():
     correct = 0
     print ("[LABEL] | [RESULT]")
     for l in range(len(target)):
-        print ("   {}    |    {}   ".format(target[l], results[l]))
+        print(f"   {target[l]}    |    {results[l]}   ")
         if target[l] == results[l]:
             correct += 1
     print ("Inference: {:.2f}% Correct".format((correct / len(target)) * 100))

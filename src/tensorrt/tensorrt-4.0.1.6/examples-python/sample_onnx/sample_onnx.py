@@ -32,7 +32,7 @@ def convert_to_datatype(v):
     elif v==32:
         return trt.infer.DataType.FLOAT
     else:
-        print("ERROR: Invalid model data type bit depth: " + str(v))
+        print(f"ERROR: Invalid model data type bit depth: {str(v)}")
         return trt.infer.DataType.INT8
 
 def get_input_output_names(trt_engine):
@@ -44,14 +44,14 @@ def get_input_output_names(trt_engine):
         if (trt_engine.binding_is_input(b)):
             print("Found input: ")
             print(trt_engine.get_binding_name(b))
-            print("shape=" + str(dims.C()) + " , " + str(dims.H()) + " , " + str(dims.W()))
-            print("dtype=" + str(trt_engine.get_binding_data_type(b)))
+            print(f"shape={str(dims.C())} , {str(dims.H())} , {str(dims.W())}")
+            print(f"dtype={str(trt_engine.get_binding_data_type(b))}")
             maps["input"] = trt_engine.get_binding_name(b)
         else:
             print("Found output: ")
             print(trt_engine.get_binding_name(b))
-            print("shape=" + str(dims.C()) + " , " + str(dims.H()) + " , " + str(dims.W()))
-            print("dtype=" + str(trt_engine.get_binding_data_type(b)))
+            print(f"shape={str(dims.C())} , {str(dims.H())} , {str(dims.W())}")
+            print(f"dtype={str(trt_engine.get_binding_data_type(b))}")
             maps["output"] = trt_engine.get_binding_name(b)
     return maps
 
@@ -90,13 +90,13 @@ def process_output(output, file_format, ref_file, topK):
         res_vec = np.argsort(-output)[:topK]
         ref_vec = np.argsort(-gold_ref)[:topK]
         for k in range(0, topK):
-            print(str(res_vec[k]) + "  " + str(ref_vec[k]))
+            print(f"{str(res_vec[k])}  {str(ref_vec[k])}")
     elif file_format == "ppm":
         ref_vec = read_reference_file(ref_file)
         desc_output = np.argsort(-output)
         output_sorted = np.sort(output)[::-1]
         for k in range(0, topK):
-            print("Class : "+str(desc_output[k] + 1)+"  ==  "+ ref_vec[desc_output[k]])
+            print(f"Class : {str(desc_output[k] + 1)}  ==  {ref_vec[desc_output[k]]}")
     else:
         print("Format Not Supported")
         sys.exit()
@@ -185,7 +185,7 @@ def sample_onnx_parser():
     print("file_format", file_format)
     print("image_file", image_file)
     print("reference_file",reference_file)
-    print("topK", str(topK))
+    print("topK", topK)
     print("model_file",model_file)
     print("data_type",data_type)
     print("max_workspace_size",max_workspace_size)

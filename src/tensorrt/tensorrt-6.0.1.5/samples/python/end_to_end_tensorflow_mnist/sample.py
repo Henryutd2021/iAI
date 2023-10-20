@@ -84,7 +84,7 @@ def build_engine(model_file):
 
 # Loads a test case into the provided pagelocked_buffer.
 def load_normalized_test_case(data_paths, pagelocked_buffer, case_num=randint(0, 9)):
-    [test_case_path] = common.locate_files(data_paths, [str(case_num) + ".pgm"])
+    [test_case_path] = common.locate_files(data_paths, [f"{str(case_num)}.pgm"])
     # Flatten the image into a 1D array, normalize, and copy to pagelocked memory.
     img = np.array(Image.open(test_case_path)).ravel()
     np.copyto(pagelocked_buffer, 1.0 - img / 255.0)
@@ -105,8 +105,8 @@ def main():
             # The common.do_inference function will return a list of outputs - we only have one in this case.
             [output] = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
             pred = np.argmax(output)
-            print("Test Case: " + str(case_num))
-            print("Prediction: " + str(pred))
+            print(f"Test Case: {str(case_num)}")
+            print(f"Prediction: {str(pred)}")
 
 if __name__ == '__main__':
     main()

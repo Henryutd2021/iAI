@@ -148,12 +148,16 @@ for (img, label), imgBGR, imgPath in zip(pair, imgBGRList, imgPathList):
     if label == 5 and label == predict:
         p5 += 1
         p += 1
-    
+
     # 将错误识别成有效车位以及有效车位识别错误的打印出来
-    img_dst_folder_4 = img_dst_folder + "_"
+    img_dst_folder_4 = f"{img_dst_folder}_"
     if not os.path.exists(img_dst_folder_4):
         os.makedirs(img_dst_folder_5)
-    if ((label == 0 or label == 1 or label ==2 or label == 3 or label == 5) and predict == 4) or (label==4 and predict != 4):
+    if (
+        label in [0, 1, 2, 3, 5]
+        and predict == 4
+        or (label == 4 and predict != 4)
+    ):
         img_dst_path_4 = os.path.join(img_dst_folder_4, os.path.basename(imgPath))
         cv2.imwrite(img_dst_path_4, imgBGR)
 

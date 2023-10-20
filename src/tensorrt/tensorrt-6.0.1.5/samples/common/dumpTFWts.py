@@ -94,55 +94,47 @@ def getTRTType(tensor):
         return 2
     if tf.as_dtype(tensor.dtype) == tf.int32:
         return 3
-    print("Tensor data type of %s is not supported in TensorRT"%(tensor.dtype))
+    print(f"Tensor data type of {tensor.dtype} is not supported in TensorRT")
     sys.exit();
 
 try:
    # Open output file
-    if opt.wtsv1:
-        outputFileName = outputbase + ".wts"
-    else:
-        outputFileName = outputbase + ".wts2"
-    outputFile = open(outputFileName, 'w')
+    outputFileName = f"{outputbase}.wts" if opt.wtsv1 else f"{outputbase}.wts2"
+    with open(outputFileName, 'w') as outputFile:
+        # read vars from checkpoint
+        reader = pywrap_tensorflow.NewCheckpointReader(inputbase)
+        var_to_shape_map = reader.get_variable_to_shape_map()
 
-    # read vars from checkpoint
-    reader = pywrap_tensorflow.NewCheckpointReader(inputbase)
-    var_to_shape_map = reader.get_variable_to_shape_map()
+        count = sum(1 for _ in sorted(var_to_shape_map))
+        outputFile.write("%s\n"%(count))
 
-    # Record count of weights
-    count = 0
-    for key in sorted(var_to_shape_map):
-        count += 1
-    outputFile.write("%s\n"%(count))
-
-    # Dump the weights in either v1 or v2 format
-    for key in sorted(var_to_shape_map):
-        tensor = reader.get_tensor(key)
-        file_key = key.replace('/','_')
-        typeOfElem = getTRTType(tensor)
-        val = tensor.shape
-        if opt.wtsv1:
-            val = tensor.size
-        print("%s %s %s "%(file_key, typeOfElem, val))
-        flat_tensor = tensor.flatten()
-        outputFile.write("%s 0 %s "%(file_key, val))
-        if opt.wtsv1:
-            for weight in flat_tensor:
-                hexval = float_to_hex(float(weight))
-                outputFile.write("%s "%(hexval[2:]))
-        else:
-            outputFile.write(flat_tensor.tobytes())
-        outputFile.write("\n");
-    outputFile.close()
-
+            # Dump the weights in either v1 or v2 format
+        for key in sorted(var_to_shape_map):
+            tensor = reader.get_tensor(key)
+            file_key = key.replace('/','_')
+            typeOfElem = getTRTType(tensor)
+            val = tensor.shape
+            if opt.wtsv1:
+                val = tensor.size
+            print(f"{file_key} {typeOfElem} {val} ")
+            flat_tensor = tensor.flatten()
+            outputFile.write(f"{file_key} 0 {val} ")
+            if opt.wtsv1:
+                for weight in flat_tensor:
+                    hexval = float_to_hex(float(weight))
+                    outputFile.write(f"{hexval[2:]} ")
+            else:
+                outputFile.write(flat_tensor.tobytes())
+            outputFile.write("\n");
 except Exception as e:  # pylint: disable=broad-except
-    print(str(e))
+    print(e)
     if "corrupted compressed block contents" in str(e):
         print("It's likely that your checkpoint file has been compressed "
                 "with SNAPPY.")
-        if ("Data loss" in str(e) and
-                (any([e in inputbase for e in [".index", ".meta", ".data"]]))):
-            proposed_file = ".".join(inputbase.split(".")[0:-1])
+        if "Data loss" in str(e) and any(
+            e in inputbase for e in [".index", ".meta", ".data"]
+        ):
+            proposed_file = ".".join(inputbase.split(".")[:-1])
             v2_file_error_template = """
            It's likely that this is a V2 checkpoint and you need to provide the filename
            *prefix*.  Try removing the '.' and extension.  Try:

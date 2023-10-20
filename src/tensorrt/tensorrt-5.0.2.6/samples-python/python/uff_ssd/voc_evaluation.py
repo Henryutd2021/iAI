@@ -166,7 +166,7 @@ def produce_tensorrt_detections(detection_files, trt_inference_wrapper, max_batc
     for idx in range(0, len(image_numbers), max_batch_size):
         imgs = image_numbers[idx:idx+max_batch_size]
         batch_size = len(imgs)
-        print("Infering image {}/{}".format(idx+1, total_imgs))
+        print(f"Infering image {idx + 1}/{total_imgs}")
         image_paths = [image_path.format(img) for img in imgs]
         detections, keep_count = trt_inference_wrapper.infer_batch(image_paths)
         prediction_fields = len(TRT_PREDICTION_LAYOUT)
@@ -176,8 +176,9 @@ def produce_tensorrt_detections(detection_files, trt_inference_wrapper, max_batc
                 _, label, confidence, xmin, ymin, xmax, ymax = \
                     analyze_tensorrt_prediction(detections, img_predictions_start_idx + det * prediction_fields)
                 if confidence > 0.0:
-                    label_name = voc_utils.coco_label_to_voc_label(COCO_LABELS[label])
-                    if label_name:
+                    if label_name := voc_utils.coco_label_to_voc_label(
+                        COCO_LABELS[label]
+                    ):
                         det_file = detection_files[label_name]
                         detection = Detection(
                             img_number,
@@ -219,7 +220,7 @@ def produce_tensorflow_detections(detection_files, tf_inference_wrapper, batch_s
     """
     total_imgs = len(image_numbers)
     for idx in range(0, len(image_numbers), batch_size):
-        print("Infering image {}/{}".format(idx+1, total_imgs))
+        print(f"Infering image {idx + 1}/{total_imgs}")
 
         imgs = image_numbers[idx:idx+batch_size]
         image_paths = [image_path.format(img) for img in imgs]
@@ -231,7 +232,7 @@ def produce_tensorflow_detections(detection_files, tf_inference_wrapper, batch_s
                 label = output_dict['detection_classes'][img_idx][det]
                 confidence = output_dict['detection_scores'][img_idx][det]
                 bbox = output_dict['detection_boxes'][img_idx][det]
-    
+
                 # Output bounding boxes are in [0, 1] format,
                 # here we rescale them to pixel [0, 255] format
                 ymin, xmin, ymax, xmax = bbox
@@ -240,11 +241,10 @@ def produce_tensorflow_detections(detection_files, tf_inference_wrapper, batch_s
                 xmax = float(xmax) * model_utils.ModelData.get_input_width()
                 ymax = float(ymax) * model_utils.ModelData.get_input_height()
 
-                # Detection is saved only if confidence is bigger than zero
                 if confidence > 0.0:
-                    # Model was trained on COCO, so we need to convert label to VOC one
-                    label_name = voc_utils.coco_label_to_voc_label(COCO_LABELS[label])
-                    if label_name: # Checks for label_name correctness
+                    if label_name := voc_utils.coco_label_to_voc_label(
+                        COCO_LABELS[label]
+                    ):
                         det_file = detection_files[label_name]
                         detection = Detection(
                             img_number,
@@ -272,8 +272,9 @@ def should_skip_inference(parsed_args):
     """
     skip_inference = True
     for voc_class in VOC_CLASSES:
-        voc_class_detection_file = \
-            os.path.join(parsed_args['results_dir'], 'det_test_{}.txt'.format(voc_class))
+        voc_class_detection_file = os.path.join(
+            parsed_args['results_dir'], f'det_test_{voc_class}.txt'
+        )
         if os.path.exists(voc_class_detection_file) and not parsed_args['force_inference']:
             continue
         else:
@@ -387,20 +388,18 @@ def parse_commandline_arguments():
         results_dir = PATHS.get_voc_model_detections_path('tensorrt',
             trt_engine_datatype)
     elif args.inference_backend == 'tensorflow':
-        results_dir = PATHS.get_voc_model_detections_path('tensorflow')        
+        results_dir = PATHS.get_voc_model_detections_path('tensorflow')
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
 
-    # Return parsed arguments for further functions to use
-    parsed = {
+    return {
         'inference_backend': args.inference_backend,
         'max_batch_size': args.max_batch_size,
         'force_inference': args.force_inference,
         'results_dir': results_dir,
         'trt_engine_path': trt_engine_path,
-        'trt_engine_datatype': trt_engine_datatype
+        'trt_engine_datatype': trt_engine_datatype,
     }
-    return parsed
 
 
 if __name__ == '__main__':
@@ -418,8 +417,9 @@ if __name__ == '__main__':
         for voc_class in VOC_CLASSES:
             detection_files[voc_class] = open(
                 os.path.join(
-                    parsed['results_dir'], 'det_test_{}.txt'.format(voc_class)
-                ), 'w'
+                    parsed['results_dir'], f'det_test_{voc_class}.txt'
+                ),
+                'w',
             )
 
     # Loading FlattenConcat plugin library using CDLL has a side
@@ -430,11 +430,7 @@ if __name__ == '__main__':
         ctypes.CDLL(PATHS.get_flatten_concat_plugin_path())
     except FileNotFoundError:
         print(
-            "Error: {}\n{}\n{}".format(
-                "Could not find {}".format(PATHS.get_flatten_concat_plugin_path()),
-                "Make sure you have compiled FlattenConcat custom plugin layer",
-                "For more details, check README.md"
-            )
+            f"Error: Could not find {PATHS.get_flatten_concat_plugin_path()}\nMake sure you have compiled FlattenConcat custom plugin layer\nFor more details, check README.md"
         )
         sys.exit(1)
 
@@ -482,15 +478,15 @@ if __name__ == '__main__':
             produce_tensorflow_detections(detection_files,
                 tf_inference_wrapper, parsed['max_batch_size'],
                 voc_image_numbers, voc_image_path)
-            
+
 
     # Flush detection to files to make sure evaluation is correct
-    for key in detection_files:
-        detection_files[key].flush()
+    for value in detection_files.values():
+        value.flush()
 
     # Do mAP computation based on saved detections
     voc_mAP_utils.do_python_eval(parsed['results_dir'])
 
     # Close detection files, they are not needed anymore
-    for key in detection_files:
-        detection_files[key].close()
+    for value_ in detection_files.values():
+        value_.close()

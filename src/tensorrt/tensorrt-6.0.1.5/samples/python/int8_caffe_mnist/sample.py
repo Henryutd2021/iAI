@@ -95,9 +95,7 @@ def check_accuracy(context, batch_size, test_set, test_labels):
     num_correct = 0
     num_total = 0
 
-    batch_num = 0
-    for start_idx in range(0, test_set.shape[0], batch_size):
-        batch_num += 1
+    for batch_num, start_idx in enumerate(range(0, test_set.shape[0], batch_size), start=1):
         if batch_num % 10 == 0:
             print("Validating batch {:}".format(batch_num))
         # If the number of images in the test set is not divisible by the batch size, the last batch will be smaller.
@@ -110,7 +108,7 @@ def check_accuracy(context, batch_size, test_set, test_labels):
         [output] = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream, batch_size=effective_batch_size)
 
         # Use argmax to get predictions and then check accuracy
-        preds = np.argmax(output.reshape(32, 10)[0:effective_batch_size], axis=1)
+        preds = np.argmax(output.reshape(32, 10)[:effective_batch_size], axis=1)
         labels = test_labels[start_idx:start_idx + effective_batch_size]
         num_total += effective_batch_size
         num_correct += np.count_nonzero(np.equal(preds, labels))

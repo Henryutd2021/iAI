@@ -59,7 +59,7 @@ def load_mnist_data(filepath):
     with open(filepath, "rb") as f:
         raw_buf = np.fromstring(f.read(), dtype=np.uint8)
     # Make sure the magic number is what we expect
-    assert raw_buf[0:4].view(">i4")[0] == 2051
+    assert raw_buf[:4].view(">i4")[0] == 2051
     num_images = raw_buf[4:8].view(">i4")[0]
     image_c = 1
     image_h = raw_buf[8:12].view(">i4")[0]
@@ -72,7 +72,7 @@ def load_mnist_labels(filepath):
     with open(filepath, "rb") as f:
         raw_buf = np.fromstring(f.read(), dtype=np.uint8)
     # Make sure the magic number is what we expect
-    assert raw_buf[0:4].view(">i4")[0] == 2049
+    assert raw_buf[:4].view(">i4")[0] == 2049
     num_labels = raw_buf[4:8].view(">i4")[0]
     return np.ascontiguousarray(raw_buf[8:].astype(np.int32).reshape(num_labels))
 
